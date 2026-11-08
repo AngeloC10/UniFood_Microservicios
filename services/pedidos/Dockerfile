@@ -1,7 +1,7 @@
 FROM node:24-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
-COPY src ./src
-ENV NODE_ENV=production
-CMD ["node", "src/index.js"]
+RUN npm install
+COPY . .
+EXPOSE 3004
+CMD ["node", "index.js"]
