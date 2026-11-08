@@ -1,19 +1,19 @@
 {
-  "name": "unifood-pedidos",
-  "private": true,
-  "version": "0.1.0",
-  "main": "src/index.js",
+  "name": "pedidos",
+  "version": "1.0.0",
+  "description": "Microservicio de Pedidos para UniFood",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "node --test"
+    "start": "node index.js",
+    "test": "node --test tests/*.test.js"
   },
-  "engines": {
-    "node": ">=24 <25"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.9",
-    "express": "^5.3.0",
-    "sqlite3": "^6.0.1"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
   }
 }
