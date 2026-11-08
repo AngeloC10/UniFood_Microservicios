@@ -139,6 +139,8 @@ app.patch('/pedidos/:id', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Microservicio de Pedidos corriendo en el puerto ${PORT}`);
 });
+
+module.exports = server;

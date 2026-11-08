@@ -1,9 +1,22 @@
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const BASE_URL = 'http://localhost:3004';
+let server;
 
 describe('Pruebas del Microservicio de Pedidos (Puerto 3004)', () => {
+
+  before(async () => {
+    // 1. Iniciar el servidor
+    server = require('../index.js');
+    // 2. Darle 1 segundo de espera para que el puerto 3004 levante por completo
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  });
+
+  after(() => {
+    // 3. Apagar el servidor al terminar para no bloquear GitHub Actions
+    if (server) server.close();
+  });
 
   test('GET /health - Debe retornar HTTP 200 y status ok', async () => {
     const res = await fetch(`${BASE_URL}/health`);
