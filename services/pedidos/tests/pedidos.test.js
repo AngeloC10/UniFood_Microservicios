@@ -1,21 +1,36 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const BASE_URL = 'http://localhost:3004';
 let server;
+let db;
 
 describe('Pruebas del Microservicio de Pedidos (Puerto 3004)', () => {
 
   before(async () => {
     // 1. Iniciar el servidor
     server = require('../index.js');
-    // 2. Darle 1 segundo de espera para que el puerto 3004 levante por completo
+    
+    // 2. Darle 1 segundo de espera para que el puerto 3004 levante y cree la tabla
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 3. Conectar a la BD e insertar datos semilla (Pedidos 1 y 2 en estado PENDIENTE)
+    db = new sqlite3.Database(path.join(__dirname, '../pedidos.sqlite'));
+    await new Promise((resolve, reject) => {
+      const sql = `INSERT OR IGNORE INTO pedidos (id, estudianteId, menuId, estado) VALUES (1, 100, 200, 'PENDIENTE'), (2, 101, 201, 'PENDIENTE')`;
+      db.run(sql, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   });
 
   after(() => {
-    // 3. Apagar el servidor al terminar para no bloquear GitHub Actions
+    // Apagar servidor y base de datos al terminar
     if (server) server.close();
+    if (db) db.close();
   });
 
   test('GET /health - Debe retornar HTTP 200 y status ok', async () => {
