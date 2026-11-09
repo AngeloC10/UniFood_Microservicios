@@ -12,6 +12,10 @@ const PORT = process.env.PORT || 3004;
 const ESTUDIANTES_URL = process.env.ESTUDIANTES_URL || 'http://localhost:3001';
 const VALIDACIONES_URL = process.env.VALIDACIONES_URL || 'http://localhost:3002';
 const MENUS_URL = process.env.MENUS_URL || 'http://localhost:3003';
+const HTTP_TIMEOUT_MS = 3000;
+const consultar = (url, options = {}) => fetch(url, {
+  ...options, signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
+});
 
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'pedidos.sqlite');
 const dbDir = path.dirname(dbPath);
@@ -24,7 +28,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   else console.log(`Conectado a BD SQLite en ${dbPath}`);
 });
 
-db.serialize(() => {
+app.ready = new Promise((resolve, reject) => {
   db.run(`
     CREATE TABLE IF NOT EXISTS pedidos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,22 +37,24 @@ db.serialize(() => {
       estado TEXT NOT NULL CHECK(estado IN ('PENDIENTE', 'LISTO', 'ENTREGADO')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `);
+  `, (err) => err ? reject(err) : resolve());
 });
+app.closeDb = () => new Promise((resolve, reject) => db.close((err) => err ? reject(err) : resolve()));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
 app.post('/pedidos', async (req, res) => {
-  const { estudianteId, menuId } = req.body;
+  const { estudianteId, menuId } = req.body || {};
 
-  if (!estudianteId || !menuId) {
-    return res.status(400).json({ error: 'VAL_ERROR', message: 'estudianteId y menuId son obligatorios' });
+  if (!Number.isSafeInteger(estudianteId) || estudianteId <= 0 ||
+      !Number.isSafeInteger(menuId) || menuId <= 0) {
+    return res.status(400).json({ error: 'VAL_ERROR', message: 'estudianteId y menuId deben ser enteros positivos' });
   }
 
   try {
-    const resEstudiante = await fetch(`${ESTUDIANTES_URL}/estudiantes/${estudianteId}`);
+    const resEstudiante = await consultar(`${ESTUDIANTES_URL}/estudiantes/${estudianteId}`);
     if (resEstudiante.status === 404) {
       return res.status(404).json({ error: 'NOT_FOUND', message: 'El estudiante no existe' });
     }
@@ -56,7 +62,7 @@ app.post('/pedidos', async (req, res) => {
       return res.status(503).json({ error: 'SERVICE_UNAVAILABLE', message: 'Error en servicio de estudiantes' });
     }
 
-    const resValidacion = await fetch(`${VALIDACIONES_URL}/validaciones/estudiantes/${estudianteId}`);
+    const resValidacion = await consultar(`${VALIDACIONES_URL}/validaciones/estudiantes/${estudianteId}`);
     if (resValidacion.status === 404) {
       return res.status(403).json({ error: 'FORBIDDEN', message: 'Estudiante no tiene solicitud de validación' });
     }
@@ -69,7 +75,7 @@ app.post('/pedidos', async (req, res) => {
       return res.status(503).json({ error: 'SERVICE_UNAVAILABLE', message: 'Error en servicio de validación' });
     }
 
-    const resCupo = await fetch(`${MENUS_URL}/menus/${menuId}/reservar-cupo`, { method: 'POST' });
+    const resCupo = await consultar(`${MENUS_URL}/menus/${menuId}/reservar-cupo`, { method: 'POST' });
     if (resCupo.status === 409) {
       return res.status(409).json({ error: 'CONFLICT', message: 'El menú no cuenta con cupos disponibles' });
     }
@@ -83,7 +89,12 @@ app.post('/pedidos', async (req, res) => {
     const sql = `INSERT INTO pedidos (estudianteId, menuId, estado) VALUES (?, ?, 'PENDIENTE')`;
     db.run(sql, [estudianteId, menuId], async function (err) {
       if (err) {
-        await fetch(`${MENUS_URL}/menus/${menuId}/devolver-cupo`, { method: 'POST' }).catch(() => {});
+        try {
+          const devolucion = await consultar(`${MENUS_URL}/menus/${menuId}/devolver-cupo`, { method: 'POST' });
+          if (!devolucion.ok) throw new Error(`HTTP ${devolucion.status}`);
+        } catch (error) {
+          console.error(`No se pudo devolver el cupo del menú ${menuId}:`, error.message);
+        }
         return res.status(500).json({ error: 'DB_ERROR', message: 'Error al guardar el pedido' });
       }
 
@@ -111,7 +122,7 @@ app.get('/pedidos/:id', (req, res) => {
 
 app.patch('/pedidos/:id', (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body;
+  const { estado } = req.body || {};
 
   if (!['LISTO', 'ENTREGADO'].includes(estado)) {
     return res.status(400).json({ error: 'VAL_ERROR', message: 'El estado solo puede cambiar a LISTO o ENTREGADO' });
@@ -132,15 +143,26 @@ app.patch('/pedidos/:id', (req, res) => {
       return res.status(400).json({ error: 'VAL_ERROR', message: 'El pedido ya fue entregado' });
     }
 
-    db.run(`UPDATE pedidos SET estado = ? WHERE id = ?`, [estado, id], function (err) {
+    db.run(`UPDATE pedidos SET estado = ? WHERE id = ? AND estado = ?`, [estado, id, estadoActual], function (err) {
       if (err) return res.status(500).json({ error: 'DB_ERROR', message: err.message });
+      if (this.changes === 0) return res.status(409).json({ error: 'CONFLICT', message: 'El estado del pedido cambió; vuelva a consultarlo' });
       res.json({ id: Number(id), estado });
     });
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Microservicio de Pedidos corriendo en el puerto ${PORT}`);
+app.use((err, _req, res, _next) => {
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'ERROR_INTERNO' : 'VAL_ERROR', message: status === 500 ? 'Error interno del servidor' : 'Cuerpo JSON inválido' });
 });
 
-module.exports = server;
+if (require.main === module) {
+  app.ready.then(() => app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Microservicio de Pedidos corriendo en el puerto ${PORT}`);
+  })).catch((err) => {
+    console.error('No se pudo inicializar Pedidos:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = app;

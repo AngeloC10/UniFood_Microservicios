@@ -1,5 +1,2 @@
-const express = require('express');
-const app = express();
-app.use(express.json());
-app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
-module.exports = app;
+// Compatibilidad con el punto de entrada inicial: exponer la aplicación real.
+module.exports = require('../index');
