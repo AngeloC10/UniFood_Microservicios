@@ -85,7 +85,7 @@ app.get('/menus/:id', (req, res) => {
 
 // Registrar un menú.
 app.post('/menus', (req, res) => {
-  const { nombre, descripcion, precio, cupos, fecha } = req.body;
+  const { nombre, descripcion, precio, cupos, fecha } = req.body || {};
 
   if (
     typeof nombre !== 'string' || !nombre.trim() ||
@@ -214,6 +214,11 @@ app.post('/menus/:id/devolver-cupo', (req, res) => {
       message: 'No se pudo devolver el cupo.'
     });
   }
+});
+
+app.use((err, _req, res, _next) => {
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'ERROR_INTERNO' : 'DATOS_INVALIDOS', message: status === 500 ? 'Error interno del servidor.' : 'Cuerpo JSON inválido.' });
 });
 
 module.exports = app;

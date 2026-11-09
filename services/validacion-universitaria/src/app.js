@@ -15,7 +15,8 @@ const aDto = (r) => ({
 });
 
 const fechaValida = (f) =>
-  typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(Date.parse(f));
+  typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f) &&
+  Number.isFinite(Date.parse(f)) && new Date(f).toISOString().slice(0, 10) === f;
 
 function createApp({ db, estudiantesUrl = process.env.ESTUDIANTES_URL || 'http://localhost:3001', fetchFn = fetch }) {
   const app = express();
@@ -38,7 +39,9 @@ function createApp({ db, estudiantesUrl = process.env.ESTUDIANTES_URL || 'http:/
 
     let respuesta;
     try {
-      respuesta = await fetchFn(`${estudiantesUrl}/estudiantes/${estudianteId}`);
+      respuesta = await fetchFn(`${estudiantesUrl}/estudiantes/${estudianteId}`, {
+        signal: AbortSignal.timeout(3000)
+      });
     } catch {
       return enviarError(res, 503, 'ESTUDIANTES_NO_DISPONIBLE',
         'No se pudo consultar el servicio de estudiantes.');

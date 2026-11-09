@@ -9,13 +9,14 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Descargar código
         uses: actions/checkout@v6
       - name: Preparar Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: '.nvmrc'
       - name: Instalar y probar los cuatro servicios
         shell: bash
         run: |
@@ -24,7 +25,24 @@ jobs:
             echo "=== $service ==="
             (cd "services/$service" && npm ci && npm test)
           done
+      - name: Integración HTTP con cuatro procesos y SQLite temporal
+        env:
+          UNIFOOD_REPORT_DIR: ${{ runner.temp }}/unifood-integration/node
+        run: node --test tests/integration/sistema.test.js
       - name: Validar Docker Compose
         run: docker compose config -q
-      - name: Construir imágenes Docker
-        run: docker compose build
+      - name: Construir imágenes y comprobar integración con Docker
+        env:
+          UNIFOOD_INTEGRATION_MODE: docker
+          UNIFOOD_REPORT_DIR: ${{ runner.temp }}/unifood-integration/docker
+        run: node --test tests/integration/sistema.test.js
+      - name: Mostrar evidencias de integración
+        if: always()
+        shell: bash
+        run: |
+          for mode in node docker; do
+            report="$RUNNER_TEMP/unifood-integration/$mode"
+            if [ -d "$report" ]; then
+              find "$report" -maxdepth 1 -type f -print -exec cat {} \;
+            fi
+          done

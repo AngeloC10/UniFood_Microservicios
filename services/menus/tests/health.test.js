@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');
+process.env.DB_PATH = ':memory:';
 const app = require('../src/app');
 
 test('GET /health devuelve 200 y status ok', async () => {

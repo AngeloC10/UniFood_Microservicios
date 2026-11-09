@@ -1,0 +1,318 @@
+{
+  "generadoEn": "2026-11-09T01:54:33.861Z",
+  "alcance": "Resultados de ejecuciones locales reales; las API de integración no usan mocks.",
+  "git": {
+    "rama": "fix/integracion-final-unifood",
+    "base": "d98571c5d89c43105ed22adc7a117a11b68a20af",
+    "origin": "https://github.com/AngeloC10/UniFood_Microservicios.git",
+    "diferenciaMainOriginAlInicio": [
+      0,
+      0
+    ],
+    "commitsPushMergesRealizados": false
+  },
+  "versiones": {
+    "nodeWSL": "24.21.0",
+    "npmWSL": "11.19.0",
+    "nodeContenedores": "24.22.2",
+    "npmContenedores": "11.19.1",
+    "docker": "29.8.2",
+    "compose": "5.5.1",
+    "express": {
+      "estudiantes": "5.3.0",
+      "validacion": "5.3.0",
+      "menus": "5.3.0",
+      "pedidos": "4.22.3"
+    },
+    "sqlite": {
+      "estudiantes": {
+        "driver": "node:sqlite",
+        "motor": "3.53.4"
+      },
+      "validacion": {
+        "driver": "node:sqlite",
+        "motor": "3.53.4"
+      },
+      "menus": {
+        "driver": "better-sqlite3",
+        "versionDriver": "13.0.3",
+        "motor": "3.53.4"
+      },
+      "pedidos": {
+        "driver": "sqlite3",
+        "versionDriver": "5.1.7",
+        "motor": "3.44.2"
+      }
+    }
+  },
+  "individuales": {
+    "comando": "npm test en cada servicio, tras npm ci",
+    "originales": {
+      "estudiantes": 6,
+      "validacion": 9,
+      "menus": 1,
+      "pedidos": 7
+    },
+    "finales": {
+      "estudiantes": 6,
+      "validacion": 9,
+      "menus": 1,
+      "pedidos": 8
+    },
+    "totalFinalAprobado": 24,
+    "fallosFinales": 0,
+    "repeticionPedidos": "8/8 en dos ejecuciones consecutivas tras npm ci"
+  },
+  "integracion": {
+    "node": {
+      "modo": "node",
+      "nodeHost": "v24.21.0",
+      "puertos": [
+        39307,
+        43749,
+        37545,
+        37539
+      ],
+      "datos": "/tmp/unifood-integracion-JPoCQO",
+      "resultados": [
+        {
+          "caso": "Salud: cuatro servicios reales",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 1: registrar estudiante y rechazar duplicado",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 2: solicitar validación manual PENDIENTE",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Registrar menú y consultar disponibilidad por fecha",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 3: validación pendiente rechaza pedido (403) sin descontar",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 4: aprobar manualmente y reservar (201)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 5: menú sin cupos rechaza pedido (409)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 6: pedido válido descuenta exactamente un cupo",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 7: consultar y actualizar PENDIENTE → LISTO → ENTREGADO",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 8: estudiante inexistente (404) en tres APIs",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Validación de payload, fecha y JSON mal formado",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 9: dependencias realmente detenidas responden 503",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Compensación: fallo real de INSERT devuelve el cupo (500)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Concurrencia: cinco reservas para un cupo, solo una aceptada",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Solicitud reciente RECHAZADA impide reservar (403)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite",
+          "estado": "FUNCIONA"
+        }
+      ]
+    },
+    "docker": {
+      "modo": "docker",
+      "nodeHost": "v24.21.0",
+      "proyectoDocker": "unifood-test-1794188675763-4113",
+      "puertos": [
+        38087,
+        39069,
+        36793,
+        35783
+      ],
+      "datos": "/tmp/unifood-integracion-chGnMZ",
+      "resultados": [
+        {
+          "caso": "Salud: cuatro servicios reales",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 1: registrar estudiante y rechazar duplicado",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 2: solicitar validación manual PENDIENTE",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Registrar menú y consultar disponibilidad por fecha",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 3: validación pendiente rechaza pedido (403) sin descontar",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 4: aprobar manualmente y reservar (201)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 5: menú sin cupos rechaza pedido (409)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 6: pedido válido descuenta exactamente un cupo",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 7: consultar y actualizar PENDIENTE → LISTO → ENTREGADO",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 8: estudiante inexistente (404) en tres APIs",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Validación de payload, fecha y JSON mal formado",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 9: dependencias realmente detenidas responden 503",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Compensación: fallo real de INSERT devuelve el cupo (500)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Concurrencia: cinco reservas para un cupo, solo una aceptada",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Solicitud reciente RECHAZADA impide reservar (403)",
+          "estado": "FUNCIONA"
+        },
+        {
+          "caso": "Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite",
+          "estado": "FUNCIONA"
+        }
+      ]
+    },
+    "escenariosPorEntorno": 16,
+    "testsReportadosPorEntorno": 17,
+    "nota": "El test contenedor también cuenta en el total de Node."
+  },
+  "composeFinal": {
+    "proyecto": "unifood-integracion-20261108",
+    "estado": "FUNCIONA",
+    "contenedores": [
+      {
+        "nombre": "unifood-integracion-20261108-estudiantes-1",
+        "servicio": "estudiantes",
+        "estado": "running",
+        "salud": "healthy",
+        "puertos": [
+          {
+            "publicado": 3001,
+            "contenedor": 3001
+          }
+        ]
+      },
+      {
+        "nombre": "unifood-integracion-20261108-menus-1",
+        "servicio": "menus",
+        "estado": "running",
+        "salud": "healthy",
+        "puertos": [
+          {
+            "publicado": 3003,
+            "contenedor": 3003
+          }
+        ]
+      },
+      {
+        "nombre": "unifood-integracion-20261108-pedidos-1",
+        "servicio": "pedidos",
+        "estado": "running",
+        "salud": "healthy",
+        "puertos": [
+          {
+            "publicado": 3004,
+            "contenedor": 3004
+          }
+        ]
+      },
+      {
+        "nombre": "unifood-integracion-20261108-validacion-universitaria-1",
+        "servicio": "validacion-universitaria",
+        "estado": "running",
+        "salud": "healthy",
+        "puertos": [
+          {
+            "publicado": 3002,
+            "contenedor": 3002
+          }
+        ]
+      }
+    ],
+    "healthDesdeWSL": "Cuatro respuestas status ok en 3001–3004",
+    "volumenesOriginalesMontados": false,
+    "volumenesEliminados": false
+  },
+  "githubActions": {
+    "main": {
+      "estado": "FUNCIONA",
+      "headSha": "d98571c5d89c43105ed22adc7a117a11b68a20af",
+      "url": "https://github.com/AngeloC10/UniFood_Microservicios/actions/runs/42543613435",
+      "alcance": "Instalación, tests individuales, Compose config y build; sin integración de negocio"
+    },
+    "pipelineModificada": {
+      "estado": "NO VERIFICADO",
+      "detalle": "No se publicó ni ejecutó remotamente; YAML y comandos comprobados localmente."
+    }
+  },
+  "pendientes": [
+    {
+      "estado": "FALLA",
+      "comprobacion": "npm audit --json en services/pedidos",
+      "salida": 1,
+      "bajas": 2,
+      "altas": 4,
+      "criticas": 1,
+      "total": 7,
+      "solucionPropuestaPorNpm": "sqlite3 6.0.1; cambio mayor no aplicado"
+    },
+    {
+      "estado": "FALLA",
+      "comprobacion": "GET /ruta-inexistente en cuatro puertos",
+      "http": 404,
+      "contentType": "text/html; charset=utf-8",
+      "detalle": "No coincide con el formato JSON general acordado"
+    },
+    {
+      "estado": "NO VERIFICADO",
+      "detalle": "Datos históricos en volúmenes originales, carga prolongada, dependencias parcialmente colgadas y parser con payload sobredimensionado"
+    }
+  ]
+}

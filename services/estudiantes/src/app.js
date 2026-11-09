@@ -78,4 +78,9 @@ app.get('/estudiantes/:id', (req, res) => {
   return res.status(200).json(estudiante);
 });
 
+app.use((err, _req, res, _next) => {
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'ERROR_SERVIDOR' : 'CAMPOS_INVALIDOS', message: status === 500 ? 'Error interno del servidor.' : 'Cuerpo JSON inválido.' });
+});
+
 module.exports = app;

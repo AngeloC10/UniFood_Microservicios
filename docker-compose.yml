@@ -1,6 +1,14 @@
+x-healthcheck: &healthcheck
+  test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+process.env.PORT+'/health',{signal:AbortSignal.timeout(2000)}).then(async r=>{if(!r.ok||(await r.json()).status!=='ok')process.exit(1)}).catch(()=>process.exit(1))"]
+  interval: 5s
+  timeout: 3s
+  retries: 12
+  start_period: 10s
+
 services:
   estudiantes:
     build: ./services/estudiantes
+    healthcheck: *healthcheck
     ports:
       - "3001:3001"
     environment:
@@ -11,6 +19,7 @@ services:
 
   validacion-universitaria:
     build: ./services/validacion-universitaria
+    healthcheck: *healthcheck
     ports:
       - "3002:3002"
     environment:
@@ -20,10 +29,12 @@ services:
     volumes:
       - validaciones_data:/app/data
     depends_on:
-      - estudiantes
+      estudiantes:
+        condition: service_healthy
 
   menus:
     build: ./services/menus
+    healthcheck: *healthcheck
     ports:
       - "3003:3003"
     environment:
@@ -34,6 +45,7 @@ services:
 
   pedidos:
     build: ./services/pedidos
+    healthcheck: *healthcheck
     ports:
       - "3004:3004"
     environment:
@@ -45,9 +57,12 @@ services:
     volumes:
       - pedidos_data:/app/data
     depends_on:
-      - estudiantes
-      - validacion-universitaria
-      - menus
+      estudiantes:
+        condition: service_healthy
+      validacion-universitaria:
+        condition: service_healthy
+      menus:
+        condition: service_healthy
 
 volumes:
   estudiantes_data:
