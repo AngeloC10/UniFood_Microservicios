@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { spawn, execFileSync } = require('node:child_process');
+const { spawn, execFile } = require('node:child_process');
+const { promisify } = require('node:util');
 const { mkdtempSync, writeFileSync, mkdirSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
@@ -12,6 +13,7 @@ const root = path.resolve(__dirname, '../..');
 const services = ['estudiantes', 'validacion-universitaria', 'menus', 'pedidos'];
 const entries = ['src/index.js', 'src/index.js', 'src/index.js', 'index.js'];
 const docker = process.env.UNIFOOD_INTEGRATION_MODE === 'docker';
+const runFile = promisify(execFile);
 
 async function freePort() {
   const server = net.createServer();
@@ -35,14 +37,22 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
   const results = [];
   let startedDocker = false;
   const composeArgs = ['compose', '-p', project, '-f', path.join(root, 'docker-compose.yml'), '-f', path.join(dir, 'compose.test.yml')];
-  const compose = (...args) => execFileSync('docker', [...composeArgs, ...args], {
-    cwd: root, encoding: 'utf8', timeout: 300000, maxBuffer: 10 * 1024 * 1024
-  });
+  // Mantener activo el event loop mientras Docker trabaja permite a fetch
+  // procesar el cierre de conexiones keep-alive antes de la siguiente petición.
+  const compose = async (...args) => {
+    const command = runFile('docker', [...composeArgs, ...args], {
+      cwd: root, encoding: 'utf8', timeout: 300000, maxBuffer: 10 * 1024 * 1024
+    });
+    command.child.stderr.on('data', chunk => process.stderr.write(chunk));
+    return (await command).stdout;
+  };
 
   async function request(service, route, method = 'GET', body) {
     const response = await fetch(urls[service] + route, {
       method, signal: AbortSignal.timeout(15000),
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
+      // La suite detiene/reinicia contenedores: no reutilizar sockets que
+      // puedan haber sido cerrados durante esas operaciones.
+      headers: { connection: 'close', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     const text = await response.text();
@@ -104,19 +114,19 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
   }
 
   // Solo la SQLite creada por esta prueba recibe un trigger temporal de fallo.
-  function sqlPedidos(sql) {
+  async function sqlPedidos(sql) {
     const code = `const sqlite3=require('sqlite3'); const db=new sqlite3.Database(process.env.DB_PATH); db.exec(${JSON.stringify(sql)},err=>db.close(()=>{if(err){console.error(err);process.exitCode=1}}));`;
-    if (docker) compose('exec', '-T', 'pedidos', 'node', '-e', code);
-    else execFileSync(process.execPath, ['-e', code], {
+    if (docker) await compose('exec', '-T', 'pedidos', 'node', '-e', code);
+    else await runFile(process.execPath, ['-e', code], {
       cwd: path.join(root, 'services/pedidos'), env: { ...process.env, DB_PATH: path.join(dir, 'pedidos.sqlite') }
     });
   }
 
   t.after(async () => {
     if (docker && startedDocker) {
-      try { writeFileSync(path.join(reportDir, 'docker-ps.txt'), compose('ps', '-a')); } catch {}
-      try { writeFileSync(path.join(reportDir, 'docker.log'), compose('logs', '--no-color')); } catch {}
-      try { compose('stop'); } catch (err) { t.diagnostic(`No se pudo detener ${project}: ${err.message}`); }
+      try { writeFileSync(path.join(reportDir, 'docker-ps.txt'), await compose('ps', '-a')); } catch {}
+      try { writeFileSync(path.join(reportDir, 'docker.log'), await compose('logs', '--no-color')); } catch {}
+      try { await compose('stop'); } catch (err) { t.diagnostic(`No se pudo detener ${project}: ${err.message}`); }
     }
     for (let i = 3; i >= 0; i--) await stop(i);
     for (const service of services) writeFileSync(path.join(reportDir, `${service}.log`), logs[service]);
@@ -132,9 +142,12 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
     writeFileSync(path.join(dir, 'compose.test.yml'), 'services:\n' + services.map((service, i) =>
       `  ${service}:\n    ports: !override\n      - "127.0.0.1:${ports[i]}:${3001 + i}"\n`).join(''));
     startedDocker = true;
-    writeFileSync(path.join(reportDir, 'docker-build.txt'), compose('up', '--build', '-d', '--wait', '--wait-timeout', '120'));
-    writeFileSync(path.join(reportDir, 'versiones.txt'), services.map(service =>
-      `${service}\n${compose('exec', '-T', service, 'node', '-p', 'JSON.stringify({node:process.version,npm:require("child_process").execSync("npm --version").toString().trim(),express:require("express/package.json").version,sqlite:process.versions.sqlite})')}`).join('\n'));
+    writeFileSync(path.join(reportDir, 'docker-build.txt'), await compose('up', '--build', '-d', '--wait', '--wait-timeout', '120'));
+    const versions = [];
+    for (const service of services) {
+      versions.push(`${service}\n${await compose('exec', '-T', service, 'node', '-p', 'JSON.stringify({node:process.version,npm:require("child_process").execSync("npm --version").toString().trim(),express:require("express/package.json").version,sqlite:process.versions.sqlite})')}`);
+    }
+    writeFileSync(path.join(reportDir, 'versiones.txt'), versions.join('\n'));
   } else {
     for (let i = 0; i < services.length; i++) await start(i);
   }
@@ -209,7 +222,7 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
     }
     for (let i = 0; i < 4; i++) {
       const response = await fetch(urls[i] + ['/estudiantes', '/validaciones', '/menus', '/pedidos'][i], {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: '{', signal: AbortSignal.timeout(5000)
+        method: 'POST', headers: { 'content-type': 'application/json', connection: 'close' }, body: '{', signal: AbortSignal.timeout(5000)
       });
       assert.equal(response.status, 400);
       assert.equal(typeof (await response.json()).error, 'string');
@@ -218,23 +231,25 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
   });
   await step('Caso 9: dependencias realmente detenidas responden 503', async () => {
     for (const index of [0, 1, 2]) {
+      // Pedidos debe estar disponible antes de detener su dependencia.
+      await expect(3, '/health', 200);
       try {
-        if (docker) compose('stop', services[index]); else await stop(index);
+        if (docker) await compose('stop', services[index]); else await stop(index);
         await expect(3, '/pedidos', 503, 'POST', { estudianteId: estudiante.id, menuId: menu.id });
         if (index === 0) await expect(1, '/validaciones', 503, 'POST', { estudianteId: estudiante.id, numeroCarne: 'TEST', fechaVencimiento: '2027-12-31' });
       } finally {
-        if (docker) compose('start', services[index]); else await start(index);
+        if (docker) await compose('start', services[index]); else await start(index);
         await healthy(index);
       }
     }
     assert.equal((await expect(2, `/menus/${menu.id}`, 200)).cupos, 1);
   });
   await step('Compensación: fallo real de INSERT devuelve el cupo (500)', async () => {
-    sqlPedidos(`CREATE TRIGGER fallo_integracion BEFORE INSERT ON pedidos WHEN NEW.menuId = ${menu.id} BEGIN SELECT RAISE(FAIL, 'Fallo de prueba'); END;`);
+    await sqlPedidos(`CREATE TRIGGER fallo_integracion BEFORE INSERT ON pedidos WHEN NEW.menuId = ${menu.id} BEGIN SELECT RAISE(FAIL, 'Fallo de prueba'); END;`);
     try {
       await expect(3, '/pedidos', 500, 'POST', { estudianteId: estudiante.id, menuId: menu.id });
       assert.equal((await expect(2, `/menus/${menu.id}`, 200)).cupos, 1);
-    } finally { sqlPedidos('DROP TRIGGER fallo_integracion;'); }
+    } finally { await sqlPedidos('DROP TRIGGER fallo_integracion;'); }
   });
   await step('Concurrencia: cinco reservas para un cupo, solo una aceptada', async () => {
     const respuestas = await Promise.all(Array.from({ length: 5 }, () => request(3, '/pedidos', 'POST', { estudianteId: estudiante.id, menuId: menu.id })));
@@ -248,7 +263,7 @@ test(`Sistema completo: HTTP real y SQLite (${docker ? 'Docker' : 'procesos Node
     validacion = nueva;
   });
   await step('Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite', async () => {
-    if (docker) compose('restart');
+    if (docker) await compose('restart');
     else {
       for (let i = 3; i >= 0; i--) await stop(i);
       for (let i = 0; i < 4; i++) await start(i);

@@ -87,9 +87,22 @@ Los volúmenes originales `unifood_microservicios_estudiantes_data`, `unifood_mi
 
 - **FUNCIONA en GitHub para el código previo:** se consultó la [ejecución 42543613435](https://github.com/AngeloC10/UniFood_Microservicios/actions/runs/42543613435), exitosa para `d98571c5d89c43105ed22adc7a117a11b68a20af`. Sus tareas instalaron/probaron servicios, validaron Compose y construyeron imágenes. No ejecutaron la integración de negocio.
 - **FUNCIONA localmente:** el YAML se pudo parsear; se comprobaron triggers de PR hacia `main`, push a `main`, permisos de lectura y pasos. Los comandos de pruebas y construcción/integración se ejecutaron realmente en WSL.
-- **NO VERIFICADO en GitHub:** la versión modificada de la pipeline. Requiere un commit/PR autorizado; no se despachó una ejecución remota.
+- **FALLA en GitHub para `ca0d9db`:** la [ejecución 42549694965](https://github.com/AngeloC10/UniFood_Microservicios/actions/runs/42549694965) pasó las pruebas individuales y la integración con procesos, pero falló en el caso 9 de Docker con `UND_ERR_SOCKET`. El puerto remoto 33009 corresponde a Pedidos en las evidencias de esa ejecución. Los dos fallos contados por Node son el subtest del caso 9 y su test contenedor.
+- **NO VERIFICADO en GitHub:** la corrección posterior de la suite descrita abajo. Requiere publicar los cambios autorizadamente y ejecutar la pipeline; no se despachó una ejecución remota desde esta sesión.
 
 Se conserva `actions/checkout@v6` y `actions/setup-node@v7`; sus repositorios oficiales documentan esas versiones ([checkout](https://github.com/actions/checkout), [setup-node](https://github.com/actions/setup-node)). La pipeline ahora obtiene Node de `.nvmrc`, limita el job a 15 minutos, ejecuta ambas integraciones y muestra resultados/logs incluso tras fallar. Los errores de los comandos hacen fallar el job; no hay `continue-on-error`.
+
+### Corrección del cierre de socket durante el caso 9
+
+El cliente de pruebas perdió la conexión con Pedidos mientras la suite detenía Estudiantes. Se revisaron los logs y resultados completos del runner: Node 24.22.2, imágenes construidas, servicios inicialmente saludables y fallo de transporte sin respuesta HTTP. No hay evidencia de un fallo de construcción o de una respuesta HTTP distinta de 503.
+
+La suite usaba `execFileSync` para ejecutar Compose. Ese método [bloquea el event loop de Node](https://nodejs.org/api/child_process.html#synchronous-process-creation), retrasando el procesamiento de conexiones cerradas mientras Docker espera. La reutilización de conexiones durante esas esperas es una explicación compatible con el error, pero el fallo original no se reprodujo de forma consistente: una ejecución local del código previo también pasó con Node 24.22.2.
+
+Se reemplazó la ejecución síncrona por `execFile` con promesas y se esperaron todas las operaciones de Compose y los triggers SQLite. El cliente HTTP de la suite envía `Connection: close`, también en las solicitudes de JSON inválido, para evitar reutilizar conexiones durante las paradas y reinicios. Se comprueba que Pedidos esté disponible antes de detener cada dependencia. No se agregaron reintentos a POST ni se relajó la exigencia de una respuesta 503 real.
+
+Estas correcciones afectan solo a la suite; no cambian las API, los Dockerfiles ni las bases del sistema activo. Los resultados de revalidación y su versión de Node se conservan en `docs/evidencias-integracion.json`, separados de las evidencias históricas.
+
+**FUNCIONA localmente con la corrección final y Node 24.22.2:** 17/17 tests con procesos Node y 17/17 con Docker (16 escenarios más el test contenedor en cada modo). Docker incluyó las tres dependencias detenidas, compensación, concurrencia y persistencia tras reinicio. Evidencias finales: `/tmp/unifood-integracion-ZKkYv7` y `/tmp/unifood-integracion-Rvb6rc`. Se verificaron también por GET los veinte registros de demostración del sistema activo: los cinco por servicio coinciden exactamente con su manifiesto previo. **NO VERIFICADO:** ejecución remota del código corregido.
 
 ## 7. Problemas detectados y correcciones
 
@@ -109,6 +122,7 @@ Se conserva `actions/checkout@v6` y `actions/setup-node@v7`; sus repositorios of
 | Pedidos usaba `npm install` en Docker y no declaraba engine | `npm ci --omit=dev`, herramientas de compilación y engine Node 24 |
 | Compose no esperaba disponibilidad de dependencias | Healthchecks y `condition: service_healthy` |
 | CI solo construía imágenes, sin arrancar el sistema | Integración real con procesos y Docker |
+| Caso 9 de CI falló por cierre de conexión durante una parada | Comandos asíncronos esperados y conexiones HTTP nuevas en el cliente de la suite |
 
 ## 8. Archivos modificados o añadidos
 
@@ -141,7 +155,7 @@ tests/integration/sistema.test.js         (nuevo)
 
 - **FALLA — auditoría de dependencias de Pedidos:** `npm audit --json` terminó con código 1 y reportó siete paquetes afectados: dos de severidad baja, cuatro alta y uno crítica. La cadena incluye `sqlite3`, `node-gyp`, `make-fetch-happen`, `cacache`, `http-proxy-agent`, `@tootallnate/once` y `tar`. npm propone `sqlite3` 6.0.1 con cambio mayor. Requiere revisar esa actualización en un cambio separado; no se ejecutó `npm audit fix --force`. Esto no impidió arrancar ni pasar la integración.
 - **FALLA respecto al acuerdo general de errores JSON:** rutas inexistentes devuelven 404 `text/html` en los cuatro servicios. Se comprobó `/ruta-inexistente`; los errores de negocio de las rutas del flujo sí tienen JSON.
-- **NO VERIFICADO:** ejecución remota de la pipeline modificada, datos históricos, parser con cuerpos sobredimensionados, pruebas prolongadas de carga y dependencias que responden parcialmente o quedan colgadas. El timeout está configurado; el escenario de caída probado fue detener la dependencia.
+- **NO VERIFICADO:** ejecución remota de la corrección del caso 9, datos históricos, parser con cuerpos sobredimensionados, pruebas prolongadas de carga y dependencias que responden parcialmente o quedan colgadas. El timeout está configurado; el escenario de caída probado fue detener la dependencia.
 - La actualización de estudiantes anunciada en el README inicial no está implementada. No se agregó porque no forma parte del contrato ni del flujo solicitado.
 - No hay reconciliación automática si también falla la devolución del cupo, ni idempotencia para reintentos o transacción distribuida. La prueba acredita compensación por fallo de INSERT con Menús disponible. Una garantía mayor requeriría acordar lógica adicional con el responsable; no se cambió la arquitectura.
 

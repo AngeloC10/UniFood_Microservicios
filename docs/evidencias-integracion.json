@@ -289,7 +289,17 @@
     },
     "pipelineModificada": {
       "estado": "NO VERIFICADO",
-      "detalle": "No se publicó ni ejecutó remotamente; YAML y comandos comprobados localmente."
+      "detalle": "La corrección posterior de la suite no se publicó ni ejecutó remotamente. La ejecución previa ca0d9db sí se consultó y falló."
+    },
+    "ejecucionFallida": {
+      "estado": "FALLA",
+      "headSha": "ca0d9db15968036035e29b98fd22a658f2df6107",
+      "url": "https://github.com/AngeloC10/UniFood_Microservicios/actions/runs/42549694965",
+      "nodeHost": "v24.22.2",
+      "caso": "Caso 9: dependencias realmente detenidas responden 503",
+      "error": "UND_ERR_SOCKET",
+      "servicioRemoto": "pedidos",
+      "puertoRemoto": 33009
     }
   },
   "pendientes": [
@@ -314,5 +324,259 @@
       "estado": "NO VERIFICADO",
       "detalle": "Datos históricos en volúmenes originales, carga prolongada, dependencias parcialmente colgadas y parser con payload sobredimensionado"
     }
-  ]
+  ],
+  "revalidacionCaso9": {
+    "fecha": "2026-11-09T03:35:42.098Z",
+    "base": "ca0d9db15968036035e29b98fd22a658f2df6107",
+    "correccion": "execFile asíncrono con await y Connection: close en las peticiones del cliente de integración; sin reintentos de POST ni cambios en las API.",
+    "diagnostico": "El error remoto cierra una conexión reutilizada a Pedidos durante una parada de Estudiantes. El bloqueo síncrono es compatible con una carrera de conexiones; el fallo original no se reprodujo de forma consistente localmente.",
+    "anteriorLocal": {
+      "estado": "FUNCIONA",
+      "detalle": "La suite previa también pasó localmente con Node 24.22.2; esto limita la certeza sobre la causa exacta.",
+      "evidencia": {
+        "modo": "docker",
+        "nodeHost": "v24.22.2",
+        "proyectoDocker": "unifood-test-1794194990336-8876",
+        "puertos": [
+          44551,
+          42349,
+          44445,
+          38745
+        ],
+        "datos": "/tmp/unifood-integracion-766R2f",
+        "resultados": [
+          {
+            "caso": "Salud: cuatro servicios reales",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 1: registrar estudiante y rechazar duplicado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 2: solicitar validación manual PENDIENTE",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Registrar menú y consultar disponibilidad por fecha",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 3: validación pendiente rechaza pedido (403) sin descontar",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 4: aprobar manualmente y reservar (201)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 5: menú sin cupos rechaza pedido (409)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 6: pedido válido descuenta exactamente un cupo",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 7: consultar y actualizar PENDIENTE → LISTO → ENTREGADO",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 8: estudiante inexistente (404) en tres APIs",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Validación de payload, fecha y JSON mal formado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 9: dependencias realmente detenidas responden 503",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Compensación: fallo real de INSERT devuelve el cupo (500)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Concurrencia: cinco reservas para un cupo, solo una aceptada",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Solicitud reciente RECHAZADA impide reservar (403)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite",
+            "estado": "FUNCIONA"
+          }
+        ]
+      }
+    },
+    "corregido": {
+      "node": {
+        "modo": "node",
+        "nodeHost": "v24.22.2",
+        "puertos": [
+          38897,
+          36539,
+          42073,
+          36349
+        ],
+        "datos": "/tmp/unifood-integracion-ZKkYv7",
+        "resultados": [
+          {
+            "caso": "Salud: cuatro servicios reales",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 1: registrar estudiante y rechazar duplicado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 2: solicitar validación manual PENDIENTE",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Registrar menú y consultar disponibilidad por fecha",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 3: validación pendiente rechaza pedido (403) sin descontar",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 4: aprobar manualmente y reservar (201)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 5: menú sin cupos rechaza pedido (409)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 6: pedido válido descuenta exactamente un cupo",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 7: consultar y actualizar PENDIENTE → LISTO → ENTREGADO",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 8: estudiante inexistente (404) en tres APIs",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Validación de payload, fecha y JSON mal formado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 9: dependencias realmente detenidas responden 503",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Compensación: fallo real de INSERT devuelve el cupo (500)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Concurrencia: cinco reservas para un cupo, solo una aceptada",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Solicitud reciente RECHAZADA impide reservar (403)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite",
+            "estado": "FUNCIONA"
+          }
+        ]
+      },
+      "docker": {
+        "modo": "docker",
+        "nodeHost": "v24.22.2",
+        "proyectoDocker": "unifood-test-1794195120653-9555",
+        "puertos": [
+          40625,
+          41213,
+          36757,
+          45887
+        ],
+        "datos": "/tmp/unifood-integracion-Rvb6rc",
+        "resultados": [
+          {
+            "caso": "Salud: cuatro servicios reales",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 1: registrar estudiante y rechazar duplicado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 2: solicitar validación manual PENDIENTE",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Registrar menú y consultar disponibilidad por fecha",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 3: validación pendiente rechaza pedido (403) sin descontar",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 4: aprobar manualmente y reservar (201)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 5: menú sin cupos rechaza pedido (409)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 6: pedido válido descuenta exactamente un cupo",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 7: consultar y actualizar PENDIENTE → LISTO → ENTREGADO",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 8: estudiante inexistente (404) en tres APIs",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Validación de payload, fecha y JSON mal formado",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 9: dependencias realmente detenidas responden 503",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Compensación: fallo real de INSERT devuelve el cupo (500)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Concurrencia: cinco reservas para un cupo, solo una aceptada",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Solicitud reciente RECHAZADA impide reservar (403)",
+            "estado": "FUNCIONA"
+          },
+          {
+            "caso": "Caso 10: reiniciar los cuatro servicios conserva las cuatro SQLite",
+            "estado": "FUNCIONA"
+          }
+        ]
+      },
+      "testsReportadosPorEntorno": 17,
+      "aprobadosPorEntorno": 17,
+      "fallosPorEntorno": 0
+    },
+    "registrosDemostracion": {
+      "estado": "FUNCIONA",
+      "verificacion": "20 consultas GET coinciden exactamente con el manifiesto previo: 5 registros por servicio.",
+      "modificados": false
+    },
+    "remotoCorregido": "NO VERIFICADO"
+  }
 }
